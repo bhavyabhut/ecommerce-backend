@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+
 import {
   Cart,
   CartProduct,
@@ -6,10 +7,8 @@ import {
   getSingleCartProduct,
   updateCart,
 } from '../models/cart';
-import { getProducts, getSingleProduct, Product } from '../models/product';
-
+import { getSingleProduct, Product, updateProduct } from '../models/product';
 import { sendJsonRes } from '../utils/response';
-import { getProductDetails } from './product';
 
 const getCartDetails = (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -70,31 +69,46 @@ const buildCart = (
     return { cartProducts: products, totalItems, totalPrice };
   }
 };
+
 const addProductToCart = (req: Request, res: Response, next: NextFunction) => {
   try {
     const { productId, qnt } = req.body;
     if (productId && qnt && typeof qnt === 'number') {
       const product = getSingleProduct(productId);
       if (product) {
-        const cart = getCart();
-        const existingProduct = cart.cartProducts.findIndex(
-          (product) => product.id === productId
-        );
-        let newCart;
-        if (existingProduct !== -1) {
-          newCart = buildCart(
-            productId,
-            qnt,
-            true,
-            cart.cartProducts,
-            existingProduct
+        if (product.available > qnt) {
+          const cart = getCart();
+          const existingProduct = cart.cartProducts.findIndex(
+            (product) => product.id === productId
           );
+          let newCart;
+          if (existingProduct !== -1) {
+            newCart = buildCart(
+              productId,
+              qnt,
+              true,
+              cart.cartProducts,
+              existingProduct
+            );
+          } else {
+            newCart = buildCart(productId, qnt, false, cart.cartProducts);
+          }
+          if (newCart) {
+            updateProduct({ ...product, available: product.available - qnt });
+            updateCart(newCart);
+            sendJsonRes(res, null, 'Product added successfully', 200);
+          }
         } else {
-          newCart = buildCart(productId, qnt, false, cart.cartProducts);
-        }
-        if (newCart) {
-          updateCart(newCart);
-          sendJsonRes(res, null, 'Product added successfully', 200);
+          sendJsonRes(
+            res,
+            null,
+            'Error while adding product to cart',
+            400,
+            false,
+            {
+              message: 'Product you are trying to add is out of stock',
+            }
+          );
         }
       } else {
         sendJsonRes(
@@ -128,12 +142,21 @@ const deleteProductFromCart = (
   try {
     const { id } = req.params;
     if (id) {
-      const product = getSingleCartProduct(id);
-      if (product) {
+      const cartProduct = getSingleCartProduct(id);
+      if (cartProduct) {
         const cart = getCart();
+        const existingProduct = cart.cartProducts.find((p) => p.id === id);
+        const originalProduct = getSingleProduct(id);
+
         cart.cartProducts = cart.cartProducts.filter(
           (product) => product.id !== id
         );
+
+        if (existingProduct && originalProduct)
+          updateProduct({
+            ...originalProduct,
+            available: originalProduct.available + existingProduct.cartQnt,
+          });
         updateCart({
           totalItems: getTotalItems(cart.cartProducts),
           totalPrice: getCartPrice(cart.cartProducts),

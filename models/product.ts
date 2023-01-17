@@ -72,6 +72,14 @@ const saveProduct = (product: Product) => {
   products.push(product);
 };
 
+const updateProduct = (product: Product) => {
+  products = products.map((pro) => {
+    if (pro.id === product.id) {
+      return product;
+    } else return pro;
+  });
+};
+
 const getProducts = () => {
   return products;
 };
@@ -93,4 +101,5 @@ export {
   getProducts,
   removeProduct,
   getSingleProduct,
+  updateProduct,
 };
