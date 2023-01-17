@@ -80,12 +80,8 @@ const getSingleProduct = (id: string) =>
 
 const removeProduct = (id: string) => {
   const productIndex = products.findIndex((product) => product.id === id);
-  console.log(productIndex, id, products, 'start');
-
   if (productIndex !== -1) {
     products.splice(productIndex, 1);
-    console.log(products, 'new products');
-
     return true;
   }
   return false;

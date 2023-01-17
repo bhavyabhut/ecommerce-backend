@@ -34,4 +34,8 @@ const updateCart = (newCart: Cart) => {
   }
 };
 
-export { getCart, updateCart };
+const getSingleCartProduct = (id: string) => {
+  return cart.cartProducts.find((product) => product.id === id);
+};
+
+export { getCart, updateCart, getSingleCartProduct };

@@ -1,5 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
-import { Cart, CartProduct, getCart, updateCart } from '../models/cart';
+import {
+  Cart,
+  CartProduct,
+  getCart,
+  getSingleCartProduct,
+  updateCart,
+} from '../models/cart';
 import { getProducts, getSingleProduct, Product } from '../models/product';
 
 import { sendJsonRes } from '../utils/response';
@@ -46,15 +52,12 @@ const buildCart = (
   products: CartProduct[],
   existingIndex?: number
 ): Cart => {
-  console.log(isExisting, products, existingIndex);
-
   if (isExisting && (existingIndex === 0 || existingIndex)) {
     const existingProduct = products[existingIndex];
     products[existingIndex] = {
       ...existingProduct,
       cartQnt: existingProduct.cartQnt + qnt,
     };
-    console.log(products, 'after', qnt);
 
     const totalPrice = getCartPrice(products);
     const totalItems = getTotalItems(products);
@@ -90,8 +93,6 @@ const addProductToCart = (req: Request, res: Response, next: NextFunction) => {
           newCart = buildCart(productId, qnt, false, cart.cartProducts);
         }
         if (newCart) {
-          console.log(newCart, 'newCart');
-
           updateCart(newCart);
           sendJsonRes(res, null, 'Product added successfully', 200);
         }
@@ -123,6 +124,56 @@ const deleteProductFromCart = (
   req: Request,
   res: Response,
   next: NextFunction
-) => {};
+) => {
+  try {
+    const { id } = req.params;
+    if (id) {
+      const product = getSingleCartProduct(id);
+      if (product) {
+        const cart = getCart();
+        cart.cartProducts = cart.cartProducts.filter(
+          (product) => product.id !== id
+        );
+        updateCart({
+          totalItems: getTotalItems(cart.cartProducts),
+          totalPrice: getCartPrice(cart.cartProducts),
+          cartProducts: cart.cartProducts,
+        });
+        sendJsonRes(res, null, 'Product remove success fully', 200);
+      } else {
+        sendJsonRes(
+          res,
+          null,
+          'Error while removing product to cart',
+          400,
+          false,
+          {
+            message: 'Product does not exist in cart',
+          }
+        );
+      }
+    } else {
+      sendJsonRes(
+        res,
+        null,
+        'Error while removing product to cart',
+        400,
+        false,
+        {
+          message: 'Please provide id',
+        }
+      );
+    }
+  } catch (error) {
+    sendJsonRes(
+      res,
+      null,
+      'Error while removing product to cart',
+      500,
+      false,
+      error
+    );
+  }
+};
 
 export { getCartDetails, deleteProductFromCart, addProductToCart };
