@@ -1,8 +1,8 @@
 import express from 'express';
 import {
   getCartDetails,
-  deleteProductFromCart,
   addProductToCart,
+  deleteProductFromCart,
 } from '../controllers/cart';
 const router = express.Router();
 

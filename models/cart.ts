@@ -1,41 +1,47 @@
-import { Product } from './product';
+import { Schema, model } from 'mongoose';
 
-export interface CartProduct extends Product {
+import { ProductAttributes } from './product';
+
+export interface CartProduct extends ProductAttributes {
   cartQnt: number;
 }
 
-export type Cart = {
+export type CartAttributes = {
+  _id: Schema.Types.ObjectId;
   totalPrice: number;
   totalItems: number;
-  cartProducts: CartProduct[];
+  cartProducts: { cartQnt: number; product: Schema.Types.ObjectId }[];
+  user: Schema.Types.ObjectId;
 };
 
-const cart: Cart = {
-  totalItems: 0,
-  totalPrice: 0,
-  cartProducts: [],
-};
+const CartSchema = new Schema<CartAttributes>({
+  totalItems: {
+    type: Number,
+    required: true,
+  },
+  totalPrice: {
+    type: Number,
+    required: true,
+  },
+  user: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+  },
+  cartProducts: {
+    type: [
+      {
+        cartQnt: {
+          type: Number,
+          required: true,
+        },
+        product: {
+          type: Schema.Types.ObjectId,
+          ref: 'Product',
+        },
+      },
+    ],
+    _id: false,
+  },
+});
 
-const getCart = () => {
-  try {
-    return cart;
-  } catch (error) {
-    throw error;
-  }
-};
-
-const updateCart = (newCart: Cart) => {
-  try {
-    cart.cartProducts = newCart.cartProducts;
-    cart.totalItems = newCart.totalItems;
-    cart.totalPrice = newCart.totalPrice;
-  } catch (error) {
-    throw error;
-  }
-};
-
-const getSingleCartProduct = (id: string) => {
-  return cart.cartProducts.find((product) => product.id === id);
-};
-
-export { getCart, updateCart, getSingleCartProduct };
+export const Cart = model<CartAttributes>('Cart', CartSchema);
