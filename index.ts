@@ -4,8 +4,10 @@ import cors from 'cors';
 
 import ProductRouter from './routers/product';
 import CartRouter from './routers/cart';
+import db from './utils/database';
 
 dotenv.config();
+
 const app = express();
 
 app.use(cors());
@@ -15,6 +17,12 @@ app.use('/cart', CartRouter);
 
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
-  console.log(`server is running on port ${PORT}`);
-});
+db.sync()
+  .then(() => {
+    app.listen(PORT, async () => {
+      console.log(`server is running on port ${PORT}`);
+    });
+  })
+  .catch((e) => {
+    console.log(e, 'Error in sync');
+  });
