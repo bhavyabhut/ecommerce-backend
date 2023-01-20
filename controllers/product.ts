@@ -1,27 +1,30 @@
 import { Request, Response, NextFunction } from 'express';
-import {
-  createProduct,
-  getProducts,
-  getSingleProduct,
-  removeProduct,
-  saveProduct,
-} from '../models/product';
+import { Image } from '../models/image';
+import { Product } from '../models/product';
 import { sendJsonRes } from '../utils/response';
 
-const getAllProducts = (req: Request, res: Response, next: NextFunction) => {
+const getAllProducts = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
-    const products = getProducts();
+    const products = await Product.find().populate('image');
     sendJsonRes(res, products, 'Get Products Success', 200);
   } catch (error) {
     sendJsonRes(res, null, 'Error while retriving products', 500, false, error);
   }
 };
 
-const getProductDetails = (req: Request, res: Response, next: NextFunction) => {
+const getProductDetails = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const id = req.params.id;
     if (id) {
-      const product = getSingleProduct(id);
+      const product = await Product.findById(id).populate('image');
       if (product) {
         sendJsonRes(res, product, 'Get Product Success', 200);
       } else {
@@ -39,21 +42,25 @@ const getProductDetails = (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const postProduct = (req: Request, res: Response, next: NextFunction) => {
+const postProduct = async (req: Request, res: Response, next: NextFunction) => {
   try {
     if (req.body) {
       const { title, description, price, image, totalQnt } = req.body;
       if (title && price && totalQnt) {
         if (typeof price === 'number' && typeof totalQnt === 'number') {
-          const product = createProduct(
+          const imageData = new Image({ url: image });
+          const savedImage = await imageData.save();
+          const product = new Product({
             title,
             price,
             description,
-            image,
-            totalQnt
-          );
-          saveProduct(product);
-          sendJsonRes(res, product, 'Product created successfully', 201);
+            image: savedImage,
+            totalQnt,
+            available: totalQnt,
+            user: req.user,
+          });
+          const savedProduct = await product.save();
+          sendJsonRes(res, savedProduct, 'Product created successfully', 201);
         } else {
           sendJsonRes(res, null, 'Error while storing product', 400, false, {
             message: 'Please provide valide type ',
@@ -74,17 +81,17 @@ const postProduct = (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const deleteProduct = (req: Request, res: Response, next: NextFunction) => {
+const deleteProduct = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const id = req.params.id;
     if (id) {
-      const isRemoved = removeProduct(id);
-      if (isRemoved)
-        sendJsonRes(res, null, 'Product deleted successfully', 201);
-      else
-        sendJsonRes(res, null, 'Error while deleting product', 400, false, {
-          message: 'Id does not exist',
-        });
+      const isRemoved = await Product.findByIdAndDelete(id);
+
+      sendJsonRes(res, null, 'Product deleted successfully', 201);
     } else {
       sendJsonRes(res, null, 'Error while deleting product', 400, false, {
         message: 'Please provide id',

@@ -1,18 +1,16 @@
 import { Request, Response, NextFunction } from 'express';
 
-import {
-  Cart,
-  CartProduct,
-  getCart,
-  getSingleCartProduct,
-  updateCart,
-} from '../models/cart';
-import { getSingleProduct, Product, updateProduct } from '../models/product';
+import { Cart } from '../models/cart';
+import { Product } from '../models/product';
 import { sendJsonRes } from '../utils/response';
 
-const getCartDetails = (req: Request, res: Response, next: NextFunction) => {
+const getCartDetails = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
-    const cart = getCart();
+    const cart = await Cart.find({ user: req.user._id });
     sendJsonRes(res, cart, 'Cart details', 200);
   } catch (error) {
     sendJsonRes(
@@ -26,78 +24,50 @@ const getCartDetails = (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const createCartProdcut = (id: string, qnt: number): CartProduct => {
-  // we are sure that every time product is avaialbe in the system
-  const product = getSingleProduct(id) as Product;
-  return { ...product, cartQnt: qnt };
-};
-
-const getCartPrice = (products: CartProduct[]) => {
-  let answer = 0;
-  products.forEach((product) => {
-    answer = answer + product.cartQnt * product.price;
-  });
-  return answer;
-};
-
-const getTotalItems = (products: CartProduct[]) => {
-  return products.length;
-};
-
-const buildCart = (
-  id: string,
-  qnt: number,
-  isExisting: boolean,
-  products: CartProduct[],
-  existingIndex?: number
-): Cart => {
-  if (isExisting && (existingIndex === 0 || existingIndex)) {
-    const existingProduct = products[existingIndex];
-    products[existingIndex] = {
-      ...existingProduct,
-      cartQnt: existingProduct.cartQnt + qnt,
-    };
-
-    const totalPrice = getCartPrice(products);
-    const totalItems = getTotalItems(products);
-    return { cartProducts: products, totalItems, totalPrice };
-  } else {
-    const cartProducts = createCartProdcut(id, qnt);
-    products.push(cartProducts);
-    const totalPrice = getCartPrice(products);
-    const totalItems = getTotalItems(products);
-    return { cartProducts: products, totalItems, totalPrice };
-  }
-};
-
-const addProductToCart = (req: Request, res: Response, next: NextFunction) => {
+const addProductToCart = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const { productId, qnt } = req.body;
     if (productId && qnt && typeof qnt === 'number') {
-      const product = getSingleProduct(productId);
-      if (product) {
-        if (product.available > qnt) {
-          const cart = getCart();
-          const existingProduct = cart.cartProducts.findIndex(
-            (product) => product.id === productId
-          );
-          let newCart;
-          if (existingProduct !== -1) {
-            newCart = buildCart(
-              productId,
-              qnt,
-              true,
-              cart.cartProducts,
-              existingProduct
+      const fullProduct = await Product.findById(productId);
+      if (fullProduct) {
+        if (fullProduct.available > qnt) {
+          const [cart] = await Cart.find({ user: req.user._id });
+          if (cart) {
+            const existingProduct = cart.cartProducts.findIndex(
+              (cartProduct) => cartProduct.product.toString() === productId
             );
+
+            if (existingProduct !== -1) {
+              cart.cartProducts = cart.cartProducts.map((cartProduct) => {
+                if (cartProduct.product.toString() === productId)
+                  cartProduct.cartQnt = cartProduct.cartQnt + qnt;
+                return cartProduct;
+              });
+            } else {
+              cart.totalItems = cart.totalItems + 1;
+              cart.cartProducts = [
+                ...cart.cartProducts,
+                { cartQnt: qnt, product: productId },
+              ];
+            }
+            cart.totalPrice = cart.totalPrice + fullProduct.price * qnt;
+            fullProduct.available = fullProduct.available - qnt;
           } else {
-            newCart = buildCart(productId, qnt, false, cart.cartProducts);
+            const cart = new Cart({
+              totalItems: 1,
+              totalPrice: fullProduct.price * qnt,
+              user: req.user._id,
+              cartProducts: [{ cartQnt: qnt, product: fullProduct._id }],
+            });
+            fullProduct.available = fullProduct.available - qnt;
           }
-          if (newCart) {
-            updateProduct({ ...product, available: product.available - qnt });
-            updateCart(newCart);
-            sendJsonRes(res, null, 'Product added successfully', 200);
-          }
+          await cart.save();
+          await fullProduct.save();
+          sendJsonRes(res, null, 'Product added successfully', 200);
         } else {
           sendJsonRes(
             res,
@@ -134,48 +104,34 @@ const addProductToCart = (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-const deleteProductFromCart = (
+const deleteProductFromCart = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const { id } = req.params;
-    if (id) {
-      const cartProduct = getSingleCartProduct(id);
-      if (cartProduct) {
-        const cart = getCart();
-        const existingProduct = cart.cartProducts.find((p) => p.id === id);
-        const originalProduct = getSingleProduct(id);
-
-        cart.cartProducts = cart.cartProducts.filter(
-          (product) => product.id !== id
-        );
-
-        if (existingProduct && originalProduct)
-          updateProduct({
-            ...originalProduct,
-            available: originalProduct.available + existingProduct.cartQnt,
-          });
-        updateCart({
-          totalItems: getTotalItems(cart.cartProducts),
-          totalPrice: getCartPrice(cart.cartProducts),
-          cartProducts: cart.cartProducts,
-        });
-        sendJsonRes(res, null, 'Product remove success fully', 200);
-      } else {
-        sendJsonRes(
-          res,
-          null,
-          'Error while removing product to cart',
-          400,
-          false,
-          {
-            message: 'Product does not exist in cart',
-          }
-        );
+    const fullProduct = await Product.findById(id);
+    if (fullProduct) {
+      const [cart] = await Cart.find({ user: req.user._id });
+      const existingProduct = cart.cartProducts.find(
+        (cartProduct) => cartProduct.product.toString() === id
+      );
+      cart.cartProducts = cart.cartProducts.filter(
+        (cartProduct) => cartProduct.product.toString() !== id
+      );
+      cart.totalItems = cart.totalItems - 1;
+      if (existingProduct) {
+        cart.totalPrice =
+          cart.totalPrice - fullProduct.price * existingProduct.cartQnt;
+        fullProduct.available = fullProduct.available + existingProduct.cartQnt;
       }
+      await cart.save();
+      await fullProduct.save();
+      sendJsonRes(res, null, 'Product remove success fully', 200);
     } else {
+      // TODO
+      // we should remove those products from cart
       sendJsonRes(
         res,
         null,
@@ -183,7 +139,7 @@ const deleteProductFromCart = (
         400,
         false,
         {
-          message: 'Please provide id',
+          message: 'Product does not exist in cart',
         }
       );
     }
@@ -199,4 +155,4 @@ const deleteProductFromCart = (
   }
 };
 
-export { getCartDetails, deleteProductFromCart, addProductToCart };
+export { getCartDetails, addProductToCart, deleteProductFromCart };
