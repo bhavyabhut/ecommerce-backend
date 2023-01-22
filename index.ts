@@ -7,9 +7,7 @@ import mongoose from 'mongoose';
 import ProductRouter from './routers/product';
 import CartRouter from './routers/cart';
 import AuthRouter from './routers/auth';
-
-import { User, UserAttributes } from './models/user';
-import { Cart } from './models/cart';
+import { verifyToken } from './middleware/auth';
 
 dotenv.config();
 const app = express();
@@ -18,22 +16,11 @@ app.use(cors());
 app.use(express.json());
 declare module 'express-serve-static-core' {
   interface Request {
-    user: UserAttributes;
+    user: { _id: string; email: string };
   }
 }
-app.use(async (req: Request, res: Response, next: NextFunction) => {
-  try {
-    const user = await User.findOne();
-    if (user) {
-      req.user = user;
-    }
-    next();
-  } catch (error) {
-    console.log(error);
-  }
-});
 app.use('/products', ProductRouter);
-app.use('/cart', CartRouter);
+app.use('/cart', verifyToken, CartRouter);
 app.use('/auth', AuthRouter);
 
 const PORT = process.env.PORT || 3001;

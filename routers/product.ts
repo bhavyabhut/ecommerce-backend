@@ -5,11 +5,13 @@ import {
   postProduct,
   getProductDetails,
 } from '../controllers/product';
+import { verifyToken } from '../middleware/auth';
+
 const router = express.Router();
 
 router.get('/', getAllProducts);
-router.post('/', postProduct);
-router.delete('/:id', deleteProduct);
+router.post('/', verifyToken, postProduct);
+router.delete('/:id', verifyToken, deleteProduct);
 router.get('/:id', getProductDetails);
 
 export default router;

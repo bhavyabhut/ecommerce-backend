@@ -37,10 +37,10 @@ const addProductToCart = async (
         if (fullProduct.available > qnt) {
           const [cart] = await Cart.find({ user: req.user._id });
           if (cart) {
+            // work with existing cart
             const existingProduct = cart.cartProducts.findIndex(
               (cartProduct) => cartProduct.product.toString() === productId
             );
-
             if (existingProduct !== -1) {
               cart.cartProducts = cart.cartProducts.map((cartProduct) => {
                 if (cartProduct.product.toString() === productId)
@@ -56,7 +56,9 @@ const addProductToCart = async (
             }
             cart.totalPrice = cart.totalPrice + fullProduct.price * qnt;
             fullProduct.available = fullProduct.available - qnt;
+            await cart.save();
           } else {
+            // create new cart
             const cart = new Cart({
               totalItems: 1,
               totalPrice: fullProduct.price * qnt,
@@ -64,8 +66,8 @@ const addProductToCart = async (
               cartProducts: [{ cartQnt: qnt, product: fullProduct._id }],
             });
             fullProduct.available = fullProduct.available - qnt;
+            await cart.save();
           }
-          await cart.save();
           await fullProduct.save();
           sendJsonRes(res, null, 'Product added successfully', 200);
         } else {
@@ -98,9 +100,14 @@ const addProductToCart = async (
       });
     }
   } catch (error) {
-    sendJsonRes(res, null, 'Error while adding product to cart ', 400, false, {
-      message: 'Internal Server Error',
-    });
+    sendJsonRes(
+      res,
+      null,
+      'Error while adding product to cart ',
+      500,
+      false,
+      error
+    );
   }
 };
 
