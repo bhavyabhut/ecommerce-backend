@@ -6,7 +6,9 @@ import mongoose from 'mongoose';
 
 import ProductRouter from './routers/product';
 import CartRouter from './routers/cart';
-import { User, UserAttributes, UserDocument } from './models/user';
+import AuthRouter from './routers/auth';
+
+import { User, UserAttributes } from './models/user';
 import { Cart } from './models/cart';
 
 dotenv.config();
@@ -32,6 +34,7 @@ app.use(async (req: Request, res: Response, next: NextFunction) => {
 });
 app.use('/products', ProductRouter);
 app.use('/cart', CartRouter);
+app.use('/auth', AuthRouter);
 
 const PORT = process.env.PORT || 3001;
 
@@ -39,22 +42,6 @@ mongoose
   .connect(process.env.DB_STRING || '')
   .then(async () => {
     console.log('Database connect!!');
-    // Right now we don't have user authentication that's why creating dummy user
-    const user = await User.findById('63c99717a9f537deaf5ea0cd');
-    if (!user) {
-      // user creation code
-      const newUser = await new User({
-        email: 'bhavya@gmail.com',
-        isAdmin: true,
-        name: 'Bhavya',
-      }).save();
-      const cart = await new Cart({
-        totalPrice: 0,
-        totalItems: 0,
-        cartProducts: [],
-        user: newUser,
-      }).save();
-    }
     app.listen(PORT, () => {
       console.log(`server is running on port ${PORT}`);
     });

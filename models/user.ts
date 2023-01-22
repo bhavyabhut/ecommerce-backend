@@ -6,6 +6,8 @@ export interface UserAttributes {
   email: string;
   isAdmin: boolean;
   productCreated?: Schema.Types.ObjectId[];
+  password: string;
+  token: string;
 }
 
 export const UserSchema = new Schema<UserAttributes>({
@@ -18,6 +20,14 @@ export const UserSchema = new Schema<UserAttributes>({
     required: true,
   },
   email: {
+    type: String,
+    required: true,
+  },
+  password: {
+    type: String,
+    required: true,
+  },
+  token: {
     type: String,
     required: true,
   },
