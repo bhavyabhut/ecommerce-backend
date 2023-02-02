@@ -1,17 +1,15 @@
-import { Schema, Model, model } from 'mongoose';
-import { ImageAttributes } from './image';
-import { UserAttributes } from './user';
+import { Schema, Model, model } from 'mongoose'
 
 export type ProductAttributes = {
-  _id: Schema.Types.ObjectId;
-  title: string;
-  price: number;
-  description?: string;
-  totalQnt: number;
-  available: number;
-  image: Schema.Types.ObjectId 
-  user: Schema.Types.ObjectId 
-};
+  _id: Schema.Types.ObjectId
+  title: string
+  price: number
+  description?: string
+  totalQnt: number
+  available: number
+  image: Schema.Types.ObjectId
+  user: Schema.Types.ObjectId
+}
 
 const ProductSchema = new Schema<ProductAttributes>({
   title: {
@@ -39,9 +37,9 @@ const ProductSchema = new Schema<ProductAttributes>({
     type: Schema.Types.ObjectId,
     ref: 'User',
   },
-});
+})
 
-export interface ProductDocument extends ProductAttributes, Document {}
-export interface ProductModel extends Model<ProductDocument> {}
+export type ProductDocument = ProductAttributes & Document
+export type ProductModel = Model<ProductDocument>
 
-export const Product = model<ProductAttributes>('Product', ProductSchema);
+export const Product = model<ProductAttributes>('Product', ProductSchema)
