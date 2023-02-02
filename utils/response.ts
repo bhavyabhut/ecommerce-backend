@@ -1,4 +1,4 @@
-import { Response } from 'express';
+import { Response } from 'express'
 
 export const responseDataFormatter = (
   data: any,
@@ -13,8 +13,8 @@ export const responseDataFormatter = (
     data,
     err,
     status,
-  };
-};
+  }
+}
 
 const sendJsonRes = (
   res: Response,
@@ -26,7 +26,7 @@ const sendJsonRes = (
 ) => {
   return res
     .status(status)
-    .json(responseDataFormatter(data, message, status, isSuccess, err));
-};
+    .json(responseDataFormatter(data, message, status, isSuccess, err))
+}
 
-export { sendJsonRes };
+export { sendJsonRes }

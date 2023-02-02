@@ -1,13 +1,13 @@
-import { Schema, model, Model } from 'mongoose';
+import { Schema, model, Model } from 'mongoose'
 
-export interface UserAttributes {
-  _id: Schema.Types.ObjectId;
-  name: string;
-  email: string;
-  isAdmin: boolean;
-  productCreated?: Schema.Types.ObjectId[];
-  password: string;
-  token: string;
+export type UserAttributes = {
+  _id: Schema.Types.ObjectId
+  name: string
+  email: string
+  isAdmin: boolean
+  productCreated?: Schema.Types.ObjectId[]
+  password: string
+  token: string
 }
 
 export const UserSchema = new Schema<UserAttributes>({
@@ -35,9 +35,9 @@ export const UserSchema = new Schema<UserAttributes>({
     type: [Schema.Types.ObjectId],
     ref: 'Product',
   },
-});
+})
 
-export interface UserDocument extends UserAttributes, Document {}
-export interface UserModel extends Model<UserDocument> {}
+export type UserDocument = UserAttributes & Document
+export type UserModel = Model<UserDocument>
 
-export const User = model<UserAttributes>('User', UserSchema);
+export const User = model<UserAttributes>('User', UserSchema)

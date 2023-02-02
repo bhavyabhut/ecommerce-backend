@@ -1,18 +1,18 @@
-import { Schema, model } from 'mongoose';
+import { Schema, model } from 'mongoose'
 
-import { ProductAttributes } from './product';
+import { ProductAttributes } from './product'
 
-export interface CartProduct extends ProductAttributes {
-  cartQnt: number;
-}
+export type CartProduct = {
+  cartQnt: number
+} & ProductAttributes
 
 export type CartAttributes = {
-  _id: Schema.Types.ObjectId;
-  totalPrice: number;
-  totalItems: number;
-  cartProducts: { cartQnt: number; product: Schema.Types.ObjectId }[];
-  user: Schema.Types.ObjectId;
-};
+  _id: Schema.Types.ObjectId
+  totalPrice: number
+  totalItems: number
+  cartProducts: { cartQnt: number; product: Schema.Types.ObjectId }[]
+  user: Schema.Types.ObjectId
+}
 
 const CartSchema = new Schema<CartAttributes>({
   totalItems: {
@@ -42,6 +42,6 @@ const CartSchema = new Schema<CartAttributes>({
     ],
     _id: false,
   },
-});
+})
 
-export const Cart = model<CartAttributes>('Cart', CartSchema);
+export const Cart = model<CartAttributes>('Cart', CartSchema)
