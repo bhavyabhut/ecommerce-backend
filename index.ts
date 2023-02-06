@@ -3,21 +3,28 @@ import express from 'express'
 import dotenv from 'dotenv'
 import cors from 'cors'
 import mongoose from 'mongoose'
+import helmet from 'helmet'
+import morgan from 'morgan'
 
 import ProductRouter from './routers/product'
 import CartRouter from './routers/cart'
 import AuthRouter from './routers/auth'
 import { verifyToken } from './middleware/auth'
 
-declare module 'express-serve-static-core' {
-  export type Request = {
-    user: { _id: string; email: string }
+// eslint-disable-next-line @typescript-eslint/no-namespace
+declare global {
+  namespace Express {
+    interface Request {
+      user: { _id: string; email: string }
+    }
   }
 }
 
 dotenv.config()
 const app = express()
 
+app.use(helmet())
+app.use(morgan('tiny'))
 app.use(cors())
 app.use(express.json())
 
