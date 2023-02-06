@@ -11,6 +11,7 @@ import CartRouter from './routers/cart'
 import AuthRouter from './routers/auth'
 import { verifyToken } from './middleware/auth'
 
+// eslint-disable-next-line @typescript-eslint/no-namespace
 declare global {
   namespace Express {
     interface Request {
