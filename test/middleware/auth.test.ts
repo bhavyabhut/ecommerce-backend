@@ -11,7 +11,7 @@ jest.mock('jsonwebtoken', () => {
   }
 })
 
-const mockNext = jest.fn(() => {})
+const mockNext = jest.fn()
 
 describe('verifyToken', () => {
   beforeEach(() => {
